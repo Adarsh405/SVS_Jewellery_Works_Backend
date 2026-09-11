@@ -18,7 +18,7 @@ router.get("/:id", getSilverItem);
 
 router.post("/", verifyToken, addSilverItem);
 
-router.patch("/:id/sold", verifyToken, sellSilverItem);
+router.patch("/:id/sold", sellSilverItem);
 
 router.delete("/:id", verifyToken, deleteSilverItem);
 

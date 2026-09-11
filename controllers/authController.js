@@ -2,7 +2,6 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 
-
 // LOGIN
 const login = async (req, res) => {
   try {
@@ -52,13 +51,12 @@ const login = async (req, res) => {
       }
     );
 
+    // Store JWT in HTTP-only cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite:
-        process.env.NODE_ENV === "production"
-          ? "none"
-          : "lax",
+      secure: true,
+      sameSite: "none",
+      path: "/",
       maxAge: 24 * 60 * 60 * 1000
     });
 
@@ -80,7 +78,12 @@ const login = async (req, res) => {
 
 // LOGOUT
 const logout = (req, res) => {
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/"
+  });
 
   res.status(200).json({
     success: true,
@@ -89,7 +92,18 @@ const logout = (req, res) => {
 };
 
 
+// VERIFY LOGIN
+const verifyLogin = (req, res) => {
+  res.status(200).json({
+    success: true,
+    authenticated: true,
+    user: req.user
+  });
+};
+
+
 module.exports = {
   login,
-  logout
+  logout,
+  verifyLogin
 };
