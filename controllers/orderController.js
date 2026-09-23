@@ -11,7 +11,6 @@ const VALID_STATUSES = [
   'completed'
 ];
 
-
 // ============================================================
 // HELPERS
 // ============================================================
@@ -20,7 +19,6 @@ const isEmpty = value =>
   value === undefined ||
   value === null ||
   String(value).trim() === '';
-
 
 const toNumber = value => {
   if (
@@ -38,9 +36,7 @@ const toNumber = value => {
     : null;
 };
 
-
 const validateNonNegative = (value, field) => {
-
   const number = toNumber(value);
 
   if (number === null) {
@@ -54,13 +50,11 @@ const validateNonNegative = (value, field) => {
   return null;
 };
 
-
 // ============================================================
 // COMMON VALIDATION
 // ============================================================
 
 const validateCommonFields = body => {
-
   if (isEmpty(body.customer_name)) {
     return 'customer_name is required';
   }
@@ -110,13 +104,11 @@ const validateCommonFields = body => {
   return null;
 };
 
-
 // ============================================================
 // GOLD VALIDATION
 // ============================================================
 
 const validateGoldOrder = body => {
-
   const fields = [
     ['net_weight', body.net_weight],
     ['gold_rate', body.gold_rate],
@@ -125,7 +117,6 @@ const validateGoldOrder = body => {
   ];
 
   for (const [field, value] of fields) {
-
     if (isEmpty(value)) {
       return `${field} is required for KDM/Hallmark orders`;
     }
@@ -144,13 +135,11 @@ const validateGoldOrder = body => {
   return null;
 };
 
-
 // ============================================================
 // SILVER VALIDATION
 // ============================================================
 
 const validateSilverOrder = body => {
-
   const fields = [
     ['weight', body.weight],
     ['silver_rate', body.silver_rate],
@@ -158,7 +147,6 @@ const validateSilverOrder = body => {
   ];
 
   for (const [field, value] of fields) {
-
     if (isEmpty(value)) {
       return `${field} is required for silver orders`;
     }
@@ -177,13 +165,11 @@ const validateSilverOrder = body => {
   return null;
 };
 
-
 // ============================================================
 // IMAGE HELPER
 // ============================================================
 
 const getUploadedImage = req => {
-
   if (!req.file) {
     return null;
   }
@@ -196,15 +182,12 @@ const getUploadedImage = req => {
   );
 };
 
-
 // ============================================================
 // CREATE ORDER
 // ============================================================
 
 const createOrder = async (req, res) => {
-
   try {
-
     const body = req.body;
 
     // --------------------------------------------------------
@@ -215,19 +198,16 @@ const createOrder = async (req, res) => {
       validateCommonFields(body);
 
     if (commonError) {
-
       return res.status(400).json({
         success: false,
         message: commonError
       });
     }
 
-
     const orderType =
       String(body.order_type)
         .toLowerCase()
         .trim();
-
 
     // --------------------------------------------------------
     // TYPE-SPECIFIC VALIDATION
@@ -239,25 +219,19 @@ const createOrder = async (req, res) => {
       orderType === 'kdm' ||
       orderType === 'hallmark'
     ) {
-
       validationError =
         validateGoldOrder(body);
-
     } else {
-
       validationError =
         validateSilverOrder(body);
     }
 
-
     if (validationError) {
-
       return res.status(400).json({
         success: false,
         message: validationError
       });
     }
-
 
     // --------------------------------------------------------
     // CONVERT VALUES
@@ -269,30 +243,25 @@ const createOrder = async (req, res) => {
     const makingCost =
       toNumber(body.making_cost);
 
-
     if (
       advancePaid === null ||
       advancePaid < 0
     ) {
-
       return res.status(400).json({
         success: false,
         message: 'Invalid advance_paid'
       });
     }
 
-
     if (
       makingCost === null ||
       makingCost < 0
     ) {
-
       return res.status(400).json({
         success: false,
         message: 'Invalid making_cost'
       });
     }
-
 
     // --------------------------------------------------------
     // GOLD VALUES
@@ -309,12 +278,10 @@ const createOrder = async (req, res) => {
     let weight = null;
     let silverRate = null;
 
-
     if (
       orderType === 'kdm' ||
       orderType === 'hallmark'
     ) {
-
       netWeight =
         toNumber(body.net_weight);
 
@@ -324,75 +291,62 @@ const createOrder = async (req, res) => {
       charges =
         toNumber(body.charges);
 
-
       if (
         netWeight === null ||
         netWeight < 0
       ) {
-
         return res.status(400).json({
           success: false,
           message: 'Invalid net_weight'
         });
       }
 
-
       if (
         goldRate === null ||
         goldRate < 0
       ) {
-
         return res.status(400).json({
           success: false,
           message: 'Invalid gold_rate'
         });
       }
 
-
       if (
         charges === null ||
         charges < 0
       ) {
-
         return res.status(400).json({
           success: false,
           message: 'Invalid charges'
         });
       }
-
     } else {
-
       weight =
         toNumber(body.weight);
 
       silverRate =
         toNumber(body.silver_rate);
 
-
       if (
         weight === null ||
         weight < 0
       ) {
-
         return res.status(400).json({
           success: false,
           message: 'Invalid weight'
         });
       }
 
-
       if (
         silverRate === null ||
         silverRate < 0
       ) {
-
         return res.status(400).json({
           success: false,
           message: 'Invalid silver_rate'
         });
       }
     }
-
 
     // --------------------------------------------------------
     // IMAGE
@@ -401,20 +355,12 @@ const createOrder = async (req, res) => {
     const image =
       getUploadedImage(req);
 
-
     // --------------------------------------------------------
     // CREATE DATABASE RECORD
-    //
-    // IMPORTANT:
-    // total_value and due_amount are NOT calculated here.
-    // They are NOT stored in the database.
-    //
-    // Frontend will calculate them.
     // --------------------------------------------------------
 
     const order =
       await OrderModel.create({
-
         order_type: orderType,
 
         customer_name:
@@ -428,15 +374,17 @@ const createOrder = async (req, res) => {
         item_name:
           String(body.item_name).trim(),
 
-        net_weight,
+        // IMPORTANT:
+        // Map camelCase variables to DB field names
+        net_weight: netWeight,
 
-        gold_rate,
+        gold_rate: goldRate,
 
-        charges,
+        charges: charges,
 
-        weight,
+        weight: weight,
 
-        silver_rate,
+        silver_rate: silverRate,
 
         making_cost,
 
@@ -448,44 +396,40 @@ const createOrder = async (req, res) => {
         status: 'pending'
       });
 
-
     return res.status(201).json({
-
       success: true,
-
-      message:
-        'Order created successfully',
-
+      message: 'Order created successfully',
       order
     });
 
   } catch (error) {
-    console.error('================================')
-    console.error('CREATE ORDER ERROR:')
-    console.error(error)
-    console.error('MESSAGE:', error.message)
-    console.error('DETAIL:', error.detail)
-    console.error('CODE:', error.code)
-    console.error('================================')
+    console.error('================================');
+    console.error('CREATE ORDER ERROR:');
+    console.error(error);
+    console.error('MESSAGE:', error.message);
+    console.error('DETAIL:', error.detail);
+    console.error('CODE:', error.code);
+    console.error('================================');
 
     return res.status(500).json({
-        success: false,
-        message: error.message || 'Failed to create order',
-        detail: error.detail || null,
-        code: error.code || null,
-    })
-    }
+      success: false,
+      message:
+        error.message ||
+        'Failed to create order',
+      detail:
+        error.detail || null,
+      code:
+        error.code || null
+    });
+  }
 };
-
 
 // ============================================================
 // GET ALL ORDERS
 // ============================================================
 
 const getOrders = async (req, res) => {
-
   try {
-
     const {
       search,
       status,
@@ -494,31 +438,18 @@ const getOrders = async (req, res) => {
       to_date
     } = req.query;
 
-
-    // --------------------------------------------------------
-    // STATUS VALIDATION
-    // --------------------------------------------------------
-
     if (
       status &&
       !VALID_STATUSES.includes(
         String(status).toLowerCase()
       )
     ) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'Invalid status. Use pending or completed'
       });
     }
-
-
-    // --------------------------------------------------------
-    // ORDER TYPE VALIDATION
-    // --------------------------------------------------------
 
     if (
       order_type &&
@@ -526,24 +457,15 @@ const getOrders = async (req, res) => {
         String(order_type).toLowerCase()
       )
     ) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'Invalid order_type. Use kdm, hallmark or silver'
       });
     }
 
-
-    // --------------------------------------------------------
-    // FETCH
-    // --------------------------------------------------------
-
     const orders =
       await OrderModel.findAll({
-
         search:
           search?.trim(),
 
@@ -558,96 +480,71 @@ const getOrders = async (req, res) => {
         to_date
       });
 
-
     return res.status(200).json({
-
       success: true,
-
       count: orders.length,
-
       orders
     });
 
   } catch (error) {
-
     console.error(
       'GET ORDERS ERROR:',
       error
     );
 
     return res.status(500).json({
-
       success: false,
-
       message:
         'Failed to fetch orders'
     });
   }
 };
 
-
 // ============================================================
 // GET SINGLE ORDER
 // ============================================================
 
 const getOrderById = async (req, res) => {
-
   try {
-
     const {id} = req.params;
-
 
     const order =
       await OrderModel.findById(id);
 
-
     if (!order) {
-
       return res.status(404).json({
-
         success: false,
-
         message:
           'Order not found'
       });
     }
 
-
     return res.status(200).json({
-
       success: true,
-
       order
     });
 
   } catch (error) {
-
     console.error(
       'GET ORDER ERROR:',
       error
     );
 
     return res.status(500).json({
-
       success: false,
-
       message:
         'Failed to fetch order'
     });
   }
 };
 
-
 // ============================================================
 // UPDATE ORDER
 // ============================================================
 
 const updateOrder = async (req, res) => {
-
   try {
-
     const {id} = req.params;
-
 
     // --------------------------------------------------------
     // EXISTING ORDER
@@ -656,21 +553,15 @@ const updateOrder = async (req, res) => {
     const existingOrder =
       await OrderModel.findById(id);
 
-
     if (!existingOrder) {
-
       return res.status(404).json({
-
         success: false,
-
         message:
           'Order not found'
       });
     }
 
-
     const body = req.body;
-
 
     // --------------------------------------------------------
     // ORDER TYPE
@@ -684,22 +575,17 @@ const updateOrder = async (req, res) => {
         .toLowerCase()
         .trim();
 
-
     if (
       !VALID_ORDER_TYPES.includes(
         orderType
       )
     ) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'Invalid order_type'
       });
     }
-
 
     // --------------------------------------------------------
     // COMMON FIELDS
@@ -721,54 +607,37 @@ const updateOrder = async (req, res) => {
       body.order_date ??
       existingOrder.order_date;
 
-
     if (isEmpty(customerName)) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'customer_name is required'
       });
     }
 
-
     if (isEmpty(mobileNumber)) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'mobile_number is required'
       });
     }
 
-
     if (isEmpty(itemName)) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'item_name is required'
       });
     }
 
-
     if (isEmpty(orderDate)) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'order_date is required'
       });
     }
-
 
     // --------------------------------------------------------
     // ADVANCE
@@ -780,21 +649,16 @@ const updateOrder = async (req, res) => {
         existingOrder.advance_paid
       );
 
-
     if (
       advancePaid === null ||
       advancePaid < 0
     ) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'Invalid advance_paid'
       });
     }
-
 
     // --------------------------------------------------------
     // MAKING COST
@@ -806,21 +670,16 @@ const updateOrder = async (req, res) => {
         existingOrder.making_cost
       );
 
-
     if (
       makingCost === null ||
       makingCost < 0
     ) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'Invalid making_cost'
       });
     }
-
 
     // --------------------------------------------------------
     // GOLD VALUES
@@ -830,7 +689,6 @@ const updateOrder = async (req, res) => {
     let goldRate = null;
     let charges = null;
 
-
     // --------------------------------------------------------
     // SILVER VALUES
     // --------------------------------------------------------
@@ -838,18 +696,15 @@ const updateOrder = async (req, res) => {
     let weight = null;
     let silverRate = null;
 
-
     if (
       orderType === 'kdm' ||
       orderType === 'hallmark'
     ) {
-
       netWeight =
         toNumber(
           body.net_weight ??
           existingOrder.net_weight
         );
-
 
       goldRate =
         toNumber(
@@ -857,66 +712,51 @@ const updateOrder = async (req, res) => {
           existingOrder.gold_rate
         );
 
-
       charges =
         toNumber(
           body.charges ??
           existingOrder.charges
         );
 
-
       if (
         netWeight === null ||
         netWeight < 0
       ) {
-
         return res.status(400).json({
-
           success: false,
-
           message:
             'Invalid net_weight'
         });
       }
 
-
       if (
         goldRate === null ||
         goldRate < 0
       ) {
-
         return res.status(400).json({
-
           success: false,
-
           message:
             'Invalid gold_rate'
         });
       }
 
-
       if (
         charges === null ||
         charges < 0
       ) {
-
         return res.status(400).json({
-
           success: false,
-
           message:
             'Invalid charges'
         });
       }
 
     } else {
-
       weight =
         toNumber(
           body.weight ??
           existingOrder.weight
         );
-
 
       silverRate =
         toNumber(
@@ -924,37 +764,28 @@ const updateOrder = async (req, res) => {
           existingOrder.silver_rate
         );
 
-
       if (
         weight === null ||
         weight < 0
       ) {
-
         return res.status(400).json({
-
           success: false,
-
           message:
             'Invalid weight'
         });
       }
 
-
       if (
         silverRate === null ||
         silverRate < 0
       ) {
-
         return res.status(400).json({
-
           success: false,
-
           message:
             'Invalid silver_rate'
         });
       }
     }
-
 
     // --------------------------------------------------------
     // IMAGE
@@ -964,7 +795,6 @@ const updateOrder = async (req, res) => {
       existingOrder.image;
 
     if (req.file) {
-
       image =
         req.file.path ||
         req.file.location ||
@@ -972,22 +802,14 @@ const updateOrder = async (req, res) => {
         null;
     }
 
-
     // --------------------------------------------------------
     // UPDATE DATABASE
-    //
-    // IMPORTANT:
-    // No total_value.
-    // No due_amount.
-    //
-    // They are frontend calculations.
     // --------------------------------------------------------
 
     const updated =
       await OrderModel.update(
         id,
         {
-
           order_type:
             orderType,
 
@@ -1002,15 +824,17 @@ const updateOrder = async (req, res) => {
           item_name:
             String(itemName).trim(),
 
-          net_weight,
+          // IMPORTANT:
+          // Map camelCase variables to DB field names
+          net_weight: netWeight,
 
-          gold_rate,
+          gold_rate: goldRate,
 
-          charges,
+          charges: charges,
 
-          weight,
+          weight: weight,
 
-          silver_rate,
+          silver_rate: silverRate,
 
           making_cost:
             makingCost,
@@ -1023,82 +847,70 @@ const updateOrder = async (req, res) => {
         }
       );
 
-
     if (!updated) {
-
       return res.status(404).json({
-
         success: false,
-
         message:
           'Order not found'
       });
     }
 
-
     return res.status(200).json({
-
       success: true,
-
       message:
         'Order updated successfully',
-
       order:
         updated
     });
 
   } catch (error) {
-
-    console.error(
-      'UPDATE ORDER ERROR:',
-      error
-    );
+    console.error('================================');
+    console.error('UPDATE ORDER ERROR:');
+    console.error(error);
+    console.error('MESSAGE:', error.message);
+    console.error('DETAIL:', error.detail);
+    console.error('CODE:', error.code);
+    console.error('================================');
 
     return res.status(500).json({
-
       success: false,
-
       message:
-        'Failed to update order'
+        error.message ||
+        'Failed to update order',
+      detail:
+        error.detail || null,
+      code:
+        error.code || null
     });
   }
 };
-
 
 // ============================================================
 // CHANGE STATUS
 // ============================================================
 
 const updateOrderStatus = async (req, res) => {
-
   try {
-
     const {id} = req.params;
 
     const {status} = req.body;
-
 
     const normalizedStatus =
       String(status || '')
         .toLowerCase()
         .trim();
 
-
     if (
       !VALID_STATUSES.includes(
         normalizedStatus
       )
     ) {
-
       return res.status(400).json({
-
         success: false,
-
         message:
           'Invalid status. Use pending or completed'
       });
     }
-
 
     const order =
       await OrderModel.updateStatus(
@@ -1106,117 +918,84 @@ const updateOrderStatus = async (req, res) => {
         normalizedStatus
       );
 
-
     if (!order) {
-
       return res.status(404).json({
-
         success: false,
-
         message:
           'Order not found'
       });
     }
 
-
     return res.status(200).json({
-
       success: true,
-
       message:
         `Order marked as ${normalizedStatus}`,
-
       order
     });
 
   } catch (error) {
-
     console.error(
       'STATUS UPDATE ERROR:',
       error
     );
 
     return res.status(500).json({
-
       success: false,
-
       message:
         'Failed to update order status'
     });
   }
 };
 
-
 // ============================================================
 // DELETE ORDER
 // ============================================================
 
 const deleteOrder = async (req, res) => {
-
   try {
-
     const {id} = req.params;
-
 
     const order =
       await OrderModel.delete(id);
 
-
     if (!order) {
-
       return res.status(404).json({
-
         success: false,
-
         message:
           'Order not found'
       });
     }
 
-
     return res.status(200).json({
-
       success: true,
-
       message:
         'Order deleted successfully',
-
       order
     });
 
   } catch (error) {
-
     console.error(
       'DELETE ORDER ERROR:',
       error
     );
 
     return res.status(500).json({
-
       success: false,
-
       message:
         'Failed to delete order'
     });
   }
 };
 
-
 // ============================================================
 // EXPORTS
 // ============================================================
 
 module.exports = {
-
   createOrder,
-
   getOrders,
-
   getOrderById,
-
   updateOrder,
-
   updateOrderStatus,
-
   deleteOrder
 };
