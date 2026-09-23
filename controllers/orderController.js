@@ -1,111 +1,63 @@
-const OrderModel = require('../models/orderModel');
-
-const VALID_ORDER_TYPES = [
-  'kdm',
-  'hallmark',
-  'silver'
-];
-
-const VALID_STATUSES = [
-  'pending',
-  'completed'
-];
+const OrderModel = require('../models/orderModel')
 
 // ============================================================
 // HELPERS
 // ============================================================
 
-const isEmpty = value =>
-  value === undefined ||
-  value === null ||
-  String(value).trim() === '';
-
-const toNumber = value => {
-  if (
+const isEmpty = value => {
+  return (
     value === undefined ||
     value === null ||
-    value === ''
-  ) {
-    return null;
+    String(value).trim() === ''
+  )
+}
+
+const toNumber = value => {
+  if (isEmpty(value)) {
+    return null
   }
 
-  const number = Number(value);
+  const number = Number(value)
 
   return Number.isFinite(number)
     ? number
-    : null;
-};
+    : null
+}
 
-const validateNonNegative = (value, field) => {
-  const number = toNumber(value);
+const validateNonNegative = (
+  value,
+  field
+) => {
+  const number = toNumber(value)
 
   if (number === null) {
-    return `${field} must be a valid number`;
+    return `${field} must be a valid number`
   }
 
   if (number < 0) {
-    return `${field} cannot be negative`;
+    return `${field} cannot be negative`
   }
 
-  return null;
-};
+  return null
+}
 
 // ============================================================
-// COMMON VALIDATION
+// IMAGE HELPER
+// IMPORTANT:
+// Store PUBLIC relative URL, NOT server filesystem path
 // ============================================================
 
-const validateCommonFields = body => {
-  if (isEmpty(body.customer_name)) {
-    return 'customer_name is required';
+const getUploadedImage = req => {
+  if (!req.file) {
+    return null
   }
 
-  if (isEmpty(body.mobile_number)) {
-    return 'mobile_number is required';
-  }
-
-  if (isEmpty(body.order_type)) {
-    return 'order_type is required';
-  }
-
-  if (
-    !VALID_ORDER_TYPES.includes(
-      String(body.order_type).toLowerCase()
-    )
-  ) {
-    return 'Invalid order_type. Use kdm, hallmark or silver';
-  }
-
-  if (isEmpty(body.item_name)) {
-    return 'item_name is required';
-  }
-
-  if (isEmpty(body.order_date)) {
-    return 'order_date is required';
-  }
-
-  if (
-    body.advance_paid === undefined ||
-    body.advance_paid === null ||
-    body.advance_paid === ''
-  ) {
-    return 'advance_paid is required';
-  }
-
-  const advanceError =
-    validateNonNegative(
-      body.advance_paid,
-      'advance_paid'
-    );
-
-  if (advanceError) {
-    return advanceError;
-  }
-
-  return null;
-};
+  return `/uploads/orders/${req.file.filename}`
+}
 
 // ============================================================
-// GOLD VALIDATION
+// GOLD ORDER VALIDATION
+// KDM / HALLMARK
 // ============================================================
 
 const validateGoldOrder = body => {
@@ -113,74 +65,90 @@ const validateGoldOrder = body => {
     ['net_weight', body.net_weight],
     ['gold_rate', body.gold_rate],
     ['charges', body.charges],
-    ['making_cost', body.making_cost]
-  ];
+    ['making_cost', body.making_cost],
+  ]
 
   for (const [field, value] of fields) {
     if (isEmpty(value)) {
-      return `${field} is required for KDM/Hallmark orders`;
+      return `${field} is required for gold orders`
     }
 
-    const error =
-      validateNonNegative(
-        value,
-        field
-      );
+    const error = validateNonNegative(
+      value,
+      field
+    )
 
     if (error) {
-      return error;
+      return error
     }
   }
 
-  return null;
-};
+  return null
+}
 
 // ============================================================
-// SILVER VALIDATION
+// SILVER ORDER VALIDATION
 // ============================================================
 
 const validateSilverOrder = body => {
   const fields = [
     ['weight', body.weight],
     ['silver_rate', body.silver_rate],
-    ['making_cost', body.making_cost]
-  ];
+    ['making_cost', body.making_cost],
+  ]
 
   for (const [field, value] of fields) {
     if (isEmpty(value)) {
-      return `${field} is required for silver orders`;
+      return `${field} is required for silver orders`
     }
 
-    const error =
-      validateNonNegative(
-        value,
-        field
-      );
+    const error = validateNonNegative(
+      value,
+      field
+    )
 
     if (error) {
-      return error;
+      return error
     }
   }
 
-  return null;
-};
+  return null
+}
 
 // ============================================================
-// IMAGE HELPER
+// COMMON VALIDATION
 // ============================================================
 
-const getUploadedImage = req => {
-  if (!req.file) {
-    return null;
+const validateCommonFields = body => {
+  if (isEmpty(body.customer_name)) {
+    return 'Customer name is required'
   }
 
-  return (
-    req.file.path ||
-    req.file.location ||
-    req.file.filename ||
-    null
-  );
-};
+  if (isEmpty(body.mobile_number)) {
+    return 'Mobile number is required'
+  }
+
+  if (isEmpty(body.item_name)) {
+    return 'Item name is required'
+  }
+
+  if (isEmpty(body.order_date)) {
+    return 'Order date is required'
+  }
+
+  if (!isEmpty(body.advance_paid)) {
+    const error = validateNonNegative(
+      body.advance_paid,
+      'advance_paid'
+    )
+
+    if (error) {
+      return error
+    }
+  }
+
+  return null
+}
 
 // ============================================================
 // CREATE ORDER
@@ -188,175 +156,117 @@ const getUploadedImage = req => {
 
 const createOrder = async (req, res) => {
   try {
-    const body = req.body;
+    const body = req.body
+
+    console.log('CREATE ORDER BODY:', body)
 
     // --------------------------------------------------------
     // COMMON VALIDATION
     // --------------------------------------------------------
 
     const commonError =
-      validateCommonFields(body);
+      validateCommonFields(body)
 
     if (commonError) {
       return res.status(400).json({
         success: false,
-        message: commonError
-      });
+        message: commonError,
+      })
     }
 
-    const orderType =
-      String(body.order_type)
-        .toLowerCase()
-        .trim();
+    // --------------------------------------------------------
+    // ORDER TYPE
+    // --------------------------------------------------------
+
+    const orderType = String(
+      body.order_type || ''
+    )
+      .trim()
+      .toLowerCase()
+
+    const allowedOrderTypes = [
+      'kdm',
+      'hallmark',
+      'silver',
+    ]
+
+    if (!allowedOrderTypes.includes(orderType)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'order_type must be kdm, hallmark or silver',
+      })
+    }
 
     // --------------------------------------------------------
     // TYPE-SPECIFIC VALIDATION
     // --------------------------------------------------------
 
-    let validationError;
-
     if (
       orderType === 'kdm' ||
       orderType === 'hallmark'
     ) {
-      validationError =
-        validateGoldOrder(body);
-    } else {
-      validationError =
-        validateSilverOrder(body);
+      const error =
+        validateGoldOrder(body)
+
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          message: error,
+        })
+      }
     }
 
-    if (validationError) {
-      return res.status(400).json({
-        success: false,
-        message: validationError
-      });
+    if (orderType === 'silver') {
+      const error =
+        validateSilverOrder(body)
+
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          message: error,
+        })
+      }
     }
 
     // --------------------------------------------------------
-    // CONVERT VALUES
+    // NUMERIC VALUES
     // --------------------------------------------------------
 
-    const advancePaid =
-      toNumber(body.advance_paid);
+    const netWeight =
+      toNumber(body.net_weight)
+
+    const goldRate =
+      toNumber(body.gold_rate)
+
+    const charges =
+      toNumber(body.charges)
+
+    const weight =
+      toNumber(body.weight)
+
+    const silverRate =
+      toNumber(body.silver_rate)
 
     const makingCost =
-      toNumber(body.making_cost);
+      toNumber(body.making_cost)
 
-    if (
-      advancePaid === null ||
-      advancePaid < 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid advance_paid'
-      });
-    }
-
-    if (
-      makingCost === null ||
-      makingCost < 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid making_cost'
-      });
-    }
-
-    // --------------------------------------------------------
-    // GOLD VALUES
-    // --------------------------------------------------------
-
-    let netWeight = null;
-    let goldRate = null;
-    let charges = null;
-
-    // --------------------------------------------------------
-    // SILVER VALUES
-    // --------------------------------------------------------
-
-    let weight = null;
-    let silverRate = null;
-
-    if (
-      orderType === 'kdm' ||
-      orderType === 'hallmark'
-    ) {
-      netWeight =
-        toNumber(body.net_weight);
-
-      goldRate =
-        toNumber(body.gold_rate);
-
-      charges =
-        toNumber(body.charges);
-
-      if (
-        netWeight === null ||
-        netWeight < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid net_weight'
-        });
-      }
-
-      if (
-        goldRate === null ||
-        goldRate < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid gold_rate'
-        });
-      }
-
-      if (
-        charges === null ||
-        charges < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid charges'
-        });
-      }
-    } else {
-      weight =
-        toNumber(body.weight);
-
-      silverRate =
-        toNumber(body.silver_rate);
-
-      if (
-        weight === null ||
-        weight < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid weight'
-        });
-      }
-
-      if (
-        silverRate === null ||
-        silverRate < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid silver_rate'
-        });
-      }
-    }
+    const advancePaid =
+      toNumber(body.advance_paid) || 0
 
     // --------------------------------------------------------
     // IMAGE
     // --------------------------------------------------------
 
     const image =
-      getUploadedImage(req);
+      getUploadedImage(req)
 
     // --------------------------------------------------------
-    // CREATE DATABASE RECORD
+    // CREATE DATABASE OBJECT
+    // IMPORTANT:
+    // making_cost: makingCost
+    // NOT:
+    // making_cost,
     // --------------------------------------------------------
 
     const order =
@@ -364,52 +274,61 @@ const createOrder = async (req, res) => {
         order_type: orderType,
 
         customer_name:
-          String(body.customer_name).trim(),
+          String(
+            body.customer_name
+          ).trim(),
 
         mobile_number:
-          String(body.mobile_number).trim(),
+          String(
+            body.mobile_number
+          ).trim(),
 
         image,
 
         item_name:
-          String(body.item_name).trim(),
+          String(
+            body.item_name
+          ).trim(),
 
-        // IMPORTANT:
-        // Map camelCase variables to DB field names
-        net_weight: netWeight,
+        net_weight:
+          netWeight,
 
-        gold_rate: goldRate,
+        gold_rate:
+          goldRate,
 
-        charges: charges,
+        charges:
+          charges,
 
-        weight: weight,
+        weight:
+          weight,
 
-        silver_rate: silverRate,
+        silver_rate:
+          silverRate,
 
-        making_cost: makingCost,
+        making_cost:
+          makingCost,
 
-        advance_paid: advancePaid,
+        advance_paid:
+          advancePaid,
 
         order_date:
           body.order_date,
 
-        status: 'pending'
-      });
+        status:
+          'pending',
+      })
 
     return res.status(201).json({
       success: true,
-      message: 'Order created successfully',
-      order
-    });
-
+      message:
+        'Order created successfully',
+      order,
+    })
   } catch (error) {
-    console.error('================================');
-    console.error('CREATE ORDER ERROR:');
-    console.error(error);
-    console.error('MESSAGE:', error.message);
-    console.error('DETAIL:', error.detail);
-    console.error('CODE:', error.code);
-    console.error('================================');
+    console.error(
+      'CREATE ORDER ERROR:',
+      error
+    )
 
     return res.status(500).json({
       success: false,
@@ -417,12 +336,13 @@ const createOrder = async (req, res) => {
         error.message ||
         'Failed to create order',
       detail:
-        error.detail || null,
-      code:
-        error.code || null
-    });
+        process.env.NODE_ENV ===
+        'development'
+          ? error.stack
+          : null,
+    })
   }
-};
+}
 
 // ============================================================
 // GET ALL ORDERS
@@ -430,383 +350,230 @@ const createOrder = async (req, res) => {
 
 const getOrders = async (req, res) => {
   try {
-    const {
-      search,
-      status,
-      order_type,
-      from_date,
-      to_date
-    } = req.query;
+    const filters = {
+      search:
+        req.query.search || '',
 
-    if (
-      status &&
-      !VALID_STATUSES.includes(
-        String(status).toLowerCase()
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Invalid status. Use pending or completed'
-      });
-    }
+      status:
+        req.query.status || '',
 
-    if (
-      order_type &&
-      !VALID_ORDER_TYPES.includes(
-        String(order_type).toLowerCase()
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Invalid order_type. Use kdm, hallmark or silver'
-      });
+      order_type:
+        req.query.order_type || '',
+
+      from_date:
+        req.query.from_date || '',
+
+      to_date:
+        req.query.to_date || '',
     }
 
     const orders =
-      await OrderModel.findAll({
-        search:
-          search?.trim(),
+      await OrderModel.findAll(
+        filters
+      )
 
-        status:
-          status?.toLowerCase(),
-
-        order_type:
-          order_type?.toLowerCase(),
-
-        from_date,
-
-        to_date
-      });
-
-    return res.status(200).json({
+    return res.json({
       success: true,
       count: orders.length,
-      orders
-    });
-
+      orders,
+    })
   } catch (error) {
     console.error(
       'GET ORDERS ERROR:',
       error
-    );
+    )
 
     return res.status(500).json({
       success: false,
       message:
-        'Failed to fetch orders'
-    });
+        error.message ||
+        'Failed to fetch orders',
+    })
   }
-};
+}
 
 // ============================================================
-// GET SINGLE ORDER
+// GET ORDER BY ID
 // ============================================================
 
-const getOrderById = async (req, res) => {
+const getOrderById = async (
+  req,
+  res
+) => {
   try {
-    const {id} = req.params;
+    const { id } = req.params
 
     const order =
-      await OrderModel.findById(id);
+      await OrderModel.findById(id)
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message:
-          'Order not found'
-      });
+        message: 'Order not found',
+      })
     }
 
-    return res.status(200).json({
+    return res.json({
       success: true,
-      order
-    });
-
+      order,
+    })
   } catch (error) {
     console.error(
       'GET ORDER ERROR:',
       error
-    );
+    )
 
     return res.status(500).json({
       success: false,
       message:
-        'Failed to fetch order'
-    });
+        error.message ||
+        'Failed to fetch order',
+    })
   }
-};
+}
 
 // ============================================================
 // UPDATE ORDER
 // ============================================================
 
-const updateOrder = async (req, res) => {
+const updateOrder = async (
+  req,
+  res
+) => {
   try {
-    const {id} = req.params;
+    const { id } = req.params
+    const body = req.body
+
+    console.log(
+      'UPDATE ORDER BODY:',
+      body
+    )
 
     // --------------------------------------------------------
-    // EXISTING ORDER
+    // FIND EXISTING ORDER
     // --------------------------------------------------------
 
     const existingOrder =
-      await OrderModel.findById(id);
+      await OrderModel.findById(id)
 
     if (!existingOrder) {
       return res.status(404).json({
         success: false,
-        message:
-          'Order not found'
-      });
+        message: 'Order not found',
+      })
     }
 
-    const body = req.body;
+    // --------------------------------------------------------
+    // COMMON VALIDATION
+    // --------------------------------------------------------
+
+    const commonError =
+      validateCommonFields(body)
+
+    if (commonError) {
+      return res.status(400).json({
+        success: false,
+        message: commonError,
+      })
+    }
 
     // --------------------------------------------------------
     // ORDER TYPE
     // --------------------------------------------------------
 
-    const orderType =
-      String(
-        body.order_type ??
-        existingOrder.order_type
-      )
-        .toLowerCase()
-        .trim();
+    const orderType = String(
+      body.order_type || ''
+    )
+      .trim()
+      .toLowerCase()
 
-    if (
-      !VALID_ORDER_TYPES.includes(
-        orderType
-      )
-    ) {
+    const allowedOrderTypes = [
+      'kdm',
+      'hallmark',
+      'silver',
+    ]
+
+    if (!allowedOrderTypes.includes(orderType)) {
       return res.status(400).json({
         success: false,
         message:
-          'Invalid order_type'
-      });
+          'order_type must be kdm, hallmark or silver',
+      })
     }
 
     // --------------------------------------------------------
-    // COMMON FIELDS
+    // TYPE VALIDATION
     // --------------------------------------------------------
-
-    const customerName =
-      body.customer_name ??
-      existingOrder.customer_name;
-
-    const mobileNumber =
-      body.mobile_number ??
-      existingOrder.mobile_number;
-
-    const itemName =
-      body.item_name ??
-      existingOrder.item_name;
-
-    const orderDate =
-      body.order_date ??
-      existingOrder.order_date;
-
-    if (isEmpty(customerName)) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'customer_name is required'
-      });
-    }
-
-    if (isEmpty(mobileNumber)) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'mobile_number is required'
-      });
-    }
-
-    if (isEmpty(itemName)) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'item_name is required'
-      });
-    }
-
-    if (isEmpty(orderDate)) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'order_date is required'
-      });
-    }
-
-    // --------------------------------------------------------
-    // ADVANCE
-    // --------------------------------------------------------
-
-    const advancePaid =
-      toNumber(
-        body.advance_paid ??
-        existingOrder.advance_paid
-      );
-
-    if (
-      advancePaid === null ||
-      advancePaid < 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Invalid advance_paid'
-      });
-    }
-
-    // --------------------------------------------------------
-    // MAKING COST
-    // --------------------------------------------------------
-
-    const makingCost =
-      toNumber(
-        body.making_cost ??
-        existingOrder.making_cost
-      );
-
-    if (
-      makingCost === null ||
-      makingCost < 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Invalid making_cost'
-      });
-    }
-
-    // --------------------------------------------------------
-    // GOLD VALUES
-    // --------------------------------------------------------
-
-    let netWeight = null;
-    let goldRate = null;
-    let charges = null;
-
-    // --------------------------------------------------------
-    // SILVER VALUES
-    // --------------------------------------------------------
-
-    let weight = null;
-    let silverRate = null;
 
     if (
       orderType === 'kdm' ||
       orderType === 'hallmark'
     ) {
-      netWeight =
-        toNumber(
-          body.net_weight ??
-          existingOrder.net_weight
-        );
+      const error =
+        validateGoldOrder(body)
 
-      goldRate =
-        toNumber(
-          body.gold_rate ??
-          existingOrder.gold_rate
-        );
-
-      charges =
-        toNumber(
-          body.charges ??
-          existingOrder.charges
-        );
-
-      if (
-        netWeight === null ||
-        netWeight < 0
-      ) {
+      if (error) {
         return res.status(400).json({
           success: false,
-          message:
-            'Invalid net_weight'
-        });
-      }
-
-      if (
-        goldRate === null ||
-        goldRate < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'Invalid gold_rate'
-        });
-      }
-
-      if (
-        charges === null ||
-        charges < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'Invalid charges'
-        });
-      }
-
-    } else {
-      weight =
-        toNumber(
-          body.weight ??
-          existingOrder.weight
-        );
-
-      silverRate =
-        toNumber(
-          body.silver_rate ??
-          existingOrder.silver_rate
-        );
-
-      if (
-        weight === null ||
-        weight < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'Invalid weight'
-        });
-      }
-
-      if (
-        silverRate === null ||
-        silverRate < 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'Invalid silver_rate'
-        });
+          message: error,
+        })
       }
     }
+
+    if (orderType === 'silver') {
+      const error =
+        validateSilverOrder(body)
+
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          message: error,
+        })
+      }
+    }
+
+    // --------------------------------------------------------
+    // NUMBERS
+    // --------------------------------------------------------
+
+    const netWeight =
+      toNumber(body.net_weight)
+
+    const goldRate =
+      toNumber(body.gold_rate)
+
+    const charges =
+      toNumber(body.charges)
+
+    const weight =
+      toNumber(body.weight)
+
+    const silverRate =
+      toNumber(body.silver_rate)
+
+    const makingCost =
+      toNumber(body.making_cost)
+
+    const advancePaid =
+      toNumber(body.advance_paid) || 0
 
     // --------------------------------------------------------
     // IMAGE
     // --------------------------------------------------------
 
     let image =
-      existingOrder.image;
+      existingOrder.image
 
     if (req.file) {
       image =
-        req.file.path ||
-        req.file.location ||
-        req.file.filename ||
-        null;
+        `/uploads/orders/${req.file.filename}`
     }
 
     // --------------------------------------------------------
-    // UPDATE DATABASE
+    // UPDATE
     // --------------------------------------------------------
 
-    const updated =
+    const order =
       await OrderModel.update(
         id,
         {
@@ -814,27 +581,36 @@ const updateOrder = async (req, res) => {
             orderType,
 
           customer_name:
-            String(customerName).trim(),
+            String(
+              body.customer_name
+            ).trim(),
 
           mobile_number:
-            String(mobileNumber).trim(),
+            String(
+              body.mobile_number
+            ).trim(),
 
           image,
 
           item_name:
-            String(itemName).trim(),
+            String(
+              body.item_name
+            ).trim(),
 
-          // IMPORTANT:
-          // Map camelCase variables to DB field names
-          net_weight: netWeight,
+          net_weight:
+            netWeight,
 
-          gold_rate: goldRate,
+          gold_rate:
+            goldRate,
 
-          charges: charges,
+          charges:
+            charges,
 
-          weight: weight,
+          weight:
+            weight,
 
-          silver_rate: silverRate,
+          silver_rate:
+            silverRate,
 
           making_cost:
             makingCost,
@@ -843,152 +619,129 @@ const updateOrder = async (req, res) => {
             advancePaid,
 
           order_date:
-            orderDate
+            body.order_date,
         }
-      );
+      )
 
-    if (!updated) {
-      return res.status(404).json({
-        success: false,
-        message:
-          'Order not found'
-      });
-    }
-
-    return res.status(200).json({
+    return res.json({
       success: true,
       message:
         'Order updated successfully',
-      order:
-        updated
-    });
-
+      order,
+    })
   } catch (error) {
-    console.error('================================');
-    console.error('UPDATE ORDER ERROR:');
-    console.error(error);
-    console.error('MESSAGE:', error.message);
-    console.error('DETAIL:', error.detail);
-    console.error('CODE:', error.code);
-    console.error('================================');
+    console.error(
+      'UPDATE ORDER ERROR:',
+      error
+    )
 
     return res.status(500).json({
       success: false,
       message:
         error.message ||
         'Failed to update order',
-      detail:
-        error.detail || null,
-      code:
-        error.code || null
-    });
+    })
   }
-};
+}
 
 // ============================================================
-// CHANGE STATUS
+// UPDATE STATUS
 // ============================================================
 
-const updateOrderStatus = async (req, res) => {
+const updateOrderStatus = async (
+  req,
+  res
+) => {
   try {
-    const {id} = req.params;
+    const { id } = req.params
+    const { status } = req.body
 
-    const {status} = req.body;
-
-    const normalizedStatus =
-      String(status || '')
-        .toLowerCase()
-        .trim();
-
-    if (
-      !VALID_STATUSES.includes(
-        normalizedStatus
-      )
-    ) {
+    if (isEmpty(status)) {
       return res.status(400).json({
         success: false,
         message:
-          'Invalid status. Use pending or completed'
-      });
+          'Status is required',
+      })
     }
 
     const order =
       await OrderModel.updateStatus(
         id,
-        normalizedStatus
-      );
+        status
+      )
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message:
-          'Order not found'
-      });
+        message: 'Order not found',
+      })
     }
 
-    return res.status(200).json({
+    return res.json({
       success: true,
       message:
-        `Order marked as ${normalizedStatus}`,
-      order
-    });
-
+        'Order status updated successfully',
+      order,
+    })
   } catch (error) {
     console.error(
-      'STATUS UPDATE ERROR:',
+      'UPDATE STATUS ERROR:',
       error
-    );
+    )
 
     return res.status(500).json({
       success: false,
       message:
-        'Failed to update order status'
-    });
+        error.message ||
+        'Failed to update status',
+    })
   }
-};
+}
 
 // ============================================================
 // DELETE ORDER
 // ============================================================
 
-const deleteOrder = async (req, res) => {
+const deleteOrder = async (
+  req,
+  res
+) => {
   try {
-    const {id} = req.params;
+    const { id } = req.params
 
     const order =
-      await OrderModel.delete(id);
+      await OrderModel.delete(id)
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message:
-          'Order not found'
-      });
+        message: 'Order not found',
+      })
     }
 
-    return res.status(200).json({
+    return res.json({
       success: true,
       message:
         'Order deleted successfully',
-      order
-    });
-
+      order,
+    })
   } catch (error) {
     console.error(
       'DELETE ORDER ERROR:',
       error
-    );
+    )
 
     return res.status(500).json({
       success: false,
       message:
-        'Failed to delete order'
-    });
+        error.message ||
+        'Failed to delete order',
+    })
   }
-};
+}
 
 // ============================================================
-// EXPORTS
+// EXPORT
 // ============================================================
 
 module.exports = {
@@ -997,5 +750,5 @@ module.exports = {
   getOrderById,
   updateOrder,
   updateOrderStatus,
-  deleteOrder
-};
+  deleteOrder,
+}

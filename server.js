@@ -1,82 +1,200 @@
-require("dotenv").config();
+require('dotenv').config()
 
-const express = require("express");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
+const express = require('express')
+const cors = require('cors')
+const cookieParser = require('cookie-parser')
+const path = require('path')
 
-const app = express();
+const app = express()
 
+// ============================================================
+// MIDDLEWARE
+// ============================================================
 
-// Middleware
+app.use(express.json())
 
-app.use(express.json());
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+)
 
-app.use(cookieParser());
+app.use(cookieParser())
+
+// ============================================================
+// CORS
+// ============================================================
 
 app.use(
   cors({
-    origin: "https://svs-jewellery-works-frontend.vercel.app",
+    origin:
+      'https://svs-jewellery-works-frontend.vercel.app',
     credentials: true,
   })
-);
-const path = require('path');
+)
+
+// ============================================================
+// UPLOADS
+// ============================================================
+
+// This makes:
+// /uploads/orders/example.jpg
+//
+// available at:
+// https://svs-jewellery-works-backend.onrender.com/uploads/orders/example.jpg
 
 app.use(
   '/uploads',
   express.static(
     path.join(__dirname, 'uploads')
   )
-);
+)
 
-// Routes
+// ============================================================
+// ROUTES
+// ============================================================
 
-const authRoutes = require("./routes/authRoutes");
-const kdmRoutes = require("./routes/kdmRoutes");
-const hallmarkRoutes = require("./routes/hallmarkRoutes");
-const silverRoutes = require("./routes/silverRoutes");
-const rateRoutes = require("./routes/rateRoutes");
-const soldItemRoutes = require("./routes/soldItemRoutes");
-const orderRoutes = require('./routes/orderRoutes');
+const authRoutes =
+  require('./routes/authRoutes')
 
-app.use("/api/auth", authRoutes);
+const kdmRoutes =
+  require('./routes/kdmRoutes')
 
-app.use("/api/kdm", kdmRoutes);
+const hallmarkRoutes =
+  require('./routes/hallmarkRoutes')
 
-app.use("/api/hallmark", hallmarkRoutes);
+const silverRoutes =
+  require('./routes/silverRoutes')
 
-app.use("/api/silver", silverRoutes);
+const rateRoutes =
+  require('./routes/rateRoutes')
 
-app.use("/api/rates", rateRoutes);
-app.use("/api/sold-items", soldItemRoutes);
+const soldItemRoutes =
+  require('./routes/soldItemRoutes')
+
+const orderRoutes =
+  require('./routes/orderRoutes')
+
+// ============================================================
+// API ROUTES
+// ============================================================
+
+app.use(
+  '/api/auth',
+  authRoutes
+)
+
+app.use(
+  '/api/kdm',
+  kdmRoutes
+)
+
+app.use(
+  '/api/hallmark',
+  hallmarkRoutes
+)
+
+app.use(
+  '/api/silver',
+  silverRoutes
+)
+
+app.use(
+  '/api/rates',
+  rateRoutes
+)
+
+app.use(
+  '/api/sold-items',
+  soldItemRoutes
+)
 
 app.use(
   '/api/orders',
   orderRoutes
-);
-// Health check
+)
 
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "Jewellery Shop API is running"
-  });
-});
+// ============================================================
+// HEALTH CHECK
+// ============================================================
 
+app.get(
+  '/',
+  (req, res) => {
+    res.json({
+      success: true,
+      message:
+        'Jewellery Shop API is running',
+    })
+  }
+)
 
+// ============================================================
 // 404
+// ============================================================
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "API endpoint not found"
-  });
-});
+app.use(
+  (req, res) => {
+    res.status(404).json({
+      success: false,
+      message:
+        'API endpoint not found',
+    })
+  }
+)
 
+// ============================================================
+// GLOBAL ERROR HANDLER
+// ============================================================
 
-// Start server
+app.use(
+  (error, req, res, next) => {
+    console.error(
+      'GLOBAL ERROR:',
+      error
+    )
 
-const PORT = process.env.PORT || 5000;
+    // Multer file-size error
+    if (
+      error.code ===
+      'LIMIT_FILE_SIZE'
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Image size cannot exceed 5 MB',
+      })
+    }
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    // Other upload errors
+    if (error.message) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      })
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        'Internal server error',
+    })
+  }
+)
+
+// ============================================================
+// START SERVER
+// ============================================================
+
+const PORT =
+  process.env.PORT || 5000
+
+app.listen(
+  PORT,
+  '0.0.0.0',
+  () => {
+    console.log(
+      `Server running on port ${PORT}`
+    )
+  }
+)
