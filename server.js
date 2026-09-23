@@ -19,7 +19,14 @@ app.use(
     credentials: true,
   })
 );
+const path = require('path');
 
+app.use(
+  '/uploads',
+  express.static(
+    path.join(__dirname, 'uploads')
+  )
+);
 
 // Routes
 
@@ -29,7 +36,7 @@ const hallmarkRoutes = require("./routes/hallmarkRoutes");
 const silverRoutes = require("./routes/silverRoutes");
 const rateRoutes = require("./routes/rateRoutes");
 const soldItemRoutes = require("./routes/soldItemRoutes");
-
+const orderRoutes = require('./routes/orderRoutes');
 
 app.use("/api/auth", authRoutes);
 
@@ -42,7 +49,10 @@ app.use("/api/silver", silverRoutes);
 app.use("/api/rates", rateRoutes);
 app.use("/api/sold-items", soldItemRoutes);
 
-
+app.use(
+  '/api/orders',
+  orderRoutes
+);
 // Health check
 
 app.get("/", (req, res) => {
