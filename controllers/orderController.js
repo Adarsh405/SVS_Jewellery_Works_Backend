@@ -460,20 +460,21 @@ const createOrder = async (req, res) => {
     });
 
   } catch (error) {
-
-    console.error(
-      'CREATE ORDER ERROR:',
-      error
-    );
+    console.error('================================')
+    console.error('CREATE ORDER ERROR:')
+    console.error(error)
+    console.error('MESSAGE:', error.message)
+    console.error('DETAIL:', error.detail)
+    console.error('CODE:', error.code)
+    console.error('================================')
 
     return res.status(500).json({
-
-      success: false,
-
-      message:
-        'Failed to create order'
-    });
-  }
+        success: false,
+        message: error.message || 'Failed to create order',
+        detail: error.detail || null,
+        code: error.code || null,
+    })
+    }
 };
 
 
