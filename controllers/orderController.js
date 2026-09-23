@@ -143,7 +143,7 @@ const validateSilverOrder = body => {
   const fields = [
     ['weight', body.weight],
     ['silver_rate', body.silver_rate],
-    ['making_cost', body.making_cost]
+    ['making_cost', body.makingCost]
   ];
 
   for (const [field, value] of fields) {
