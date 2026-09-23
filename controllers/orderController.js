@@ -386,7 +386,7 @@ const createOrder = async (req, res) => {
 
         silver_rate: silverRate,
 
-        making_cost,
+        making_cost: makingCost,
 
         advance_paid: advancePaid,
 
