@@ -4,7 +4,7 @@ const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const path = require('path')
-
+const customerRoutes = require('./routes/customerRoutes');
 const app = express()
 
 // ============================================================
@@ -49,7 +49,7 @@ app.use(
     path.join(__dirname, 'uploads')
   )
 )
-
+app.use('/api/customers', customerRoutes);
 // ============================================================
 // ROUTES
 // ============================================================
