@@ -229,6 +229,52 @@ const updateCustomer = async (req, res) => {
   }
 };
 
+// ============================================================
+// GET CUSTOMER BY MOBILE NUMBER
+// GET /api/customers/mobile/:mobile
+// ============================================================
+const getCustomerByMobile = async (req, res) => {
+  try {
+    const { mobile } = req.params
+
+    if (!/^[0-9]{10}$/.test(mobile)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number must contain exactly 10 digits',
+      })
+    }
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM customers
+      WHERE mobile_number = $1
+      `,
+      [mobile]
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found',
+      })
+    }
+
+    res.json({
+      success: true,
+      customer: result.rows[0],
+    })
+
+  } catch (error) {
+    console.error('Get customer by mobile error:', error)
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to find customer',
+    })
+  }
+}
+
 
 // ============================================================
 // EXPORT
@@ -238,4 +284,5 @@ module.exports = {
   getCustomers,
   getCustomerById,
   updateCustomer,
+  getCustomerByMobile
 };

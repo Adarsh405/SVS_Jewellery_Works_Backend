@@ -7,6 +7,8 @@ const {
   getCustomers,
   getCustomerById,
   updateCustomer,
+  getCustomerByMobile,
+
 } = require('../controllers/customerController');
 
 
@@ -21,6 +23,8 @@ router.get('/:id', getCustomerById);
 
 // Update customer
 router.put('/:id', updateCustomer);
+
+router.get('/mobile/:mobile', getCustomerByMobile)
 
 
 module.exports = router;
