@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 
 const router = express.Router();
 
@@ -8,23 +8,41 @@ const {
   getCustomerById,
   updateCustomer,
   getCustomerByMobile,
+} = require("../controllers/customerController");
 
-} = require('../controllers/customerController');
+// ============================================================
+// ADD CUSTOMER
+// ============================================================
 
+router.post("/", addCustomer);
 
-// Add customer
-router.post('/', addCustomer);
+// ============================================================
+// GET ALL CUSTOMERS
+// ============================================================
 
-// Get all customers
-router.get('/', getCustomers);
+router.get("/", getCustomers);
 
-// Get customer by ID
-router.get('/:id', getCustomerById);
+// ============================================================
+// GET CUSTOMER BY MOBILE
+// IMPORTANT: KEEP THIS BEFORE /:id
+// ============================================================
 
-// Update customer
-router.put('/:id', updateCustomer);
+router.get("/mobile/:mobile", getCustomerByMobile);
 
-router.get('/mobile/:mobile', getCustomerByMobile)
+// ============================================================
+// GET CUSTOMER BY ID
+// ============================================================
 
+router.get("/:id", getCustomerById);
+
+// ============================================================
+// UPDATE CUSTOMER
+// ============================================================
+
+router.put("/:id", updateCustomer);
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 module.exports = router;

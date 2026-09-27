@@ -6,13 +6,36 @@ const pool = require("../config/db");
 
 const addCustomer = async (req, res) => {
   try {
-    const {
+    let {
       customer_name,
       mobile_number,
-      email,
       address,
       telugu_name,
     } = req.body;
+
+    // ----------------------------------------------------------
+    // CLEAN INPUT
+    // ----------------------------------------------------------
+
+    customer_name =
+      typeof customer_name === "string"
+        ? customer_name.trim()
+        : "";
+
+    mobile_number =
+      typeof mobile_number === "string"
+        ? mobile_number.trim()
+        : "";
+
+    address =
+      typeof address === "string"
+        ? address.trim()
+        : "";
+
+    telugu_name =
+      typeof telugu_name === "string"
+        ? telugu_name.trim()
+        : "";
 
     // ----------------------------------------------------------
     // REQUIRED FIELDS
@@ -45,6 +68,7 @@ const addCustomer = async (req, res) => {
       SELECT id
       FROM customers
       WHERE mobile_number = $1
+      LIMIT 1
       `,
       [mobile_number]
     );
@@ -66,17 +90,15 @@ const addCustomer = async (req, res) => {
       (
         customer_name,
         mobile_number,
-        email,
         address,
         telugu_name
       )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
       `,
       [
-        customer_name.trim(),
+        customer_name,
         mobile_number,
-        email || null,
         address || null,
         telugu_name || null,
       ]
@@ -86,15 +108,16 @@ const addCustomer = async (req, res) => {
     // RESPONSE
     // ----------------------------------------------------------
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Customer added successfully",
       customer: result.rows[0],
     });
+
   } catch (error) {
     console.error("Add customer error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to add customer",
     });
@@ -115,15 +138,16 @@ const getCustomers = async (req, res) => {
       `
     );
 
-    res.json({
+    return res.json({
       success: true,
       count: result.rows.length,
       customers: result.rows,
     });
+
   } catch (error) {
     console.error("Get customers error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to get customers",
     });
@@ -137,6 +161,21 @@ const getCustomers = async (req, res) => {
 const getCustomerById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // ----------------------------------------------------------
+    // ID VALIDATION
+    // ----------------------------------------------------------
+
+    if (!/^\d+$/.test(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid customer ID",
+      });
+    }
+
+    // ----------------------------------------------------------
+    // FIND CUSTOMER
+    // ----------------------------------------------------------
 
     const result = await pool.query(
       `
@@ -154,14 +193,15 @@ const getCustomerById = async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       customer: result.rows[0],
     });
+
   } catch (error) {
     console.error("Get customer error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to get customer",
     });
@@ -176,13 +216,47 @@ const updateCustomer = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const {
+    let {
       customer_name,
       mobile_number,
-      email,
       address,
       telugu_name,
     } = req.body;
+
+    // ----------------------------------------------------------
+    // ID VALIDATION
+    // ----------------------------------------------------------
+
+    if (!/^\d+$/.test(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid customer ID",
+      });
+    }
+
+    // ----------------------------------------------------------
+    // CLEAN INPUT
+    // ----------------------------------------------------------
+
+    customer_name =
+      typeof customer_name === "string"
+        ? customer_name.trim()
+        : "";
+
+    mobile_number =
+      typeof mobile_number === "string"
+        ? mobile_number.trim()
+        : "";
+
+    address =
+      typeof address === "string"
+        ? address.trim()
+        : "";
+
+    telugu_name =
+      typeof telugu_name === "string"
+        ? telugu_name.trim()
+        : "";
 
     // ----------------------------------------------------------
     // REQUIRED FIELDS
@@ -217,6 +291,7 @@ const updateCustomer = async (req, res) => {
       FROM customers
       WHERE mobile_number = $1
       AND id != $2
+      LIMIT 1
       `,
       [mobile_number, id]
     );
@@ -238,17 +313,15 @@ const updateCustomer = async (req, res) => {
       SET
         customer_name = $1,
         mobile_number = $2,
-        email = $3,
-        address = $4,
-        telugu_name = $5,
+        address = $3,
+        telugu_name = $4,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $6
+      WHERE id = $5
       RETURNING *
       `,
       [
-        customer_name.trim(),
+        customer_name,
         mobile_number,
-        email || null,
         address || null,
         telugu_name || null,
         id,
@@ -266,19 +339,16 @@ const updateCustomer = async (req, res) => {
       });
     }
 
-    // ----------------------------------------------------------
-    // RESPONSE
-    // ----------------------------------------------------------
-
-    res.json({
+    return res.json({
       success: true,
       message: "Customer updated successfully",
       customer: result.rows[0],
     });
+
   } catch (error) {
     console.error("Update customer error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to update customer",
     });
@@ -314,6 +384,7 @@ const getCustomerByMobile = async (req, res) => {
       SELECT *
       FROM customers
       WHERE mobile_number = $1
+      LIMIT 1
       `,
       [mobile]
     );
@@ -325,14 +396,15 @@ const getCustomerByMobile = async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       customer: result.rows[0],
     });
+
   } catch (error) {
     console.error("Get customer by mobile error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to find customer",
     });
