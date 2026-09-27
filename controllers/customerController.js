@@ -289,7 +289,8 @@ const updateCustomer = async (req, res) => {
 
     // ========================================================
     // UPDATE CUSTOMER
-    // address + telugu_name OPTIONAL
+    // IMPORTANT:
+    // No updated_at because your table does not have that column
     // ========================================================
 
     const result = await pool.query(
@@ -299,8 +300,7 @@ const updateCustomer = async (req, res) => {
         customer_name = $1,
         mobile_number = $2,
         address = $3,
-        telugu_name = $4,
-        updated_at = CURRENT_TIMESTAMP
+        telugu_name = $4
       WHERE id = $5
       RETURNING *
       `,
@@ -313,12 +313,20 @@ const updateCustomer = async (req, res) => {
       ]
     );
 
+    // ========================================================
+    // CUSTOMER NOT FOUND
+    // ========================================================
+
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Customer not found",
       });
     }
+
+    // ========================================================
+    // SUCCESS
+    // ========================================================
 
     return res.json({
       success: true,
@@ -335,7 +343,6 @@ const updateCustomer = async (req, res) => {
     });
   }
 };
-
 // ============================================================
 // GET CUSTOMER BY MOBILE
 // ============================================================
