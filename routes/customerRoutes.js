@@ -10,39 +10,19 @@ const {
   getCustomerByMobile,
 } = require("../controllers/customerController");
 
-// ============================================================
-// ADD CUSTOMER
-// ============================================================
-
+// Add customer
 router.post("/", addCustomer);
 
-// ============================================================
-// GET ALL CUSTOMERS
-// ============================================================
-
+// Get all customers
 router.get("/", getCustomers);
 
-// ============================================================
-// GET CUSTOMER BY MOBILE
-// IMPORTANT: KEEP THIS BEFORE /:id
-// ============================================================
-
+// IMPORTANT: mobile route BEFORE /:id
 router.get("/mobile/:mobile", getCustomerByMobile);
 
-// ============================================================
-// GET CUSTOMER BY ID
-// ============================================================
-
+// Get customer by ID
 router.get("/:id", getCustomerById);
 
-// ============================================================
-// UPDATE CUSTOMER
-// ============================================================
-
+// Update customer
 router.put("/:id", updateCustomer);
-
-// ============================================================
-// EXPORT
-// ============================================================
 
 module.exports = router;
