@@ -25,13 +25,14 @@ app.use(cookieParser())
 // CORS
 // ============================================================
 
-app.use(
-  cors({
-    origin:
-      'https://svs-jewellery-works-frontend.vercel.app',
-    credentials: true,
-  })
-)
+const allowedOrigins = process.env.FRONTEND_URLS
+  .split(",")
+  .map(url => url.trim());
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 
 // ============================================================
 // UPLOADS
