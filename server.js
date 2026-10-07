@@ -75,6 +75,9 @@ const soldItemRoutes =
 
 const orderRoutes =
   require('./routes/orderRoutes')
+  
+const invoiceRoutes = require("./routes/invoiceRoutes");
+app.use("/api/invoices", invoiceRoutes);
 
 // ============================================================
 // API ROUTES
