@@ -22,7 +22,7 @@ router.get("/:id", getKdmItem);
 // JWT REQUIRED
 router.post("/", verifyToken, addKdmItem);
 
-router.patch("/:id/sold", verifyToken, sellKdmItem);
+router.patch("/:id/sold", sellKdmItem);
 
 router.delete("/:id", verifyToken, deleteKdmItem);
 

@@ -18,7 +18,7 @@ router.get("/:id", getHallmarkItem);
 
 router.post("/", verifyToken, addHallmarkItem);
 
-router.patch("/:id/sold", verifyToken, sellHallmarkItem);
+router.patch("/:id/sold", sellHallmarkItem);
 
 router.delete("/:id", verifyToken, deleteHallmarkItem);
 
