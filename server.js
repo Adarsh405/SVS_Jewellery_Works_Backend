@@ -117,9 +117,11 @@ app.use(
   '/api/orders',
   orderRoutes
 )
-const duesRoutes = require('./routes/duesRoutes');
 
-app.use('/api/dues', duesRoutes);
+const dueRoutes = require("./routes/dueRoutes");
+
+app.use("/api/dues", dueRoutes);
+
 // ============================================================
 // HEALTH CHECK
 // ============================================================
